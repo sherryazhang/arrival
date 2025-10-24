@@ -71,7 +71,7 @@ FROM EST_order_hours
 GROUP BY time_bucket
 ```
 
-the output is 
+the output is\
 <img width="201" height="177" alt="Screenshot 2025-10-23 at 2 47 34 PM" src="https://github.com/user-attachments/assets/2d24d6e4-c9c8-4319-9e32-4df66bb3bfa8" />
 
 ### the recommendation
@@ -80,7 +80,7 @@ Users visit the site and order food delivery at night, specifically at 8 pm. It 
 
 ### the deepdive
 
-Per user, how often do they order in each time bucket to target
+Per user, how often and consistent do they order to target notifications
 
 ```
 WITH orders_with_hour AS (
@@ -88,50 +88,44 @@ WITH orders_with_hour AS (
         user_id,
         first_name,
         last_name,
-        EXTRACT(HOUR FROM created_at AT TIME ZONE 'America/New_York') AS order_hour
+        EXTRACT(HOUR FROM created_at AT TIME ZONE 'America/New_York') AS order_hour,
+        COUNT(*) AS order_count
     FROM 
         orders
     WHERE payment_confirmed = TRUE
     AND cancelled = FALSE
-    AND delivery_date >= '2025-04-01'
-    AND NOT (last_name = 'Rathbun'
-        OR first_name in ('Grace', 'Quine', 'sherry', '', 'zhili', 'Gwin', 'grace'))
-),
-order_counts AS (
-    SELECT 
-        user_id,
-        first_name,
-        last_name,
-        CASE 
-            WHEN order_hour BETWEEN 0 AND 5 THEN 'Late Night'
-            WHEN order_hour BETWEEN 6 AND 11 THEN 'Morning'
-            WHEN order_hour BETWEEN 12 AND 17 THEN 'Afternoon'
-            ELSE 'Night'
-        END as time_bucket,
-        COUNT(*) AS orders_count
-    FROM 
-        orders_with_hour
     GROUP BY 
-        user_id, first_name, last_name, time_bucket
+        user_id, first_name, last_name, order_hour
 ),
+
 user_totals AS (
     SELECT 
         user_id,
-        SUM(orders_count) AS total_orders
+        SUM(order_count) AS total_orders
     FROM 
-        order_counts
+        orders_with_hour
     GROUP BY 
         user_id
 )
+
 SELECT 
-    oc.first_name,
-    oc.last_name,
-    oc.time_bucket,
-    ROUND(oc.orders_count/ut.total_orders * 100, 1) AS order_percentage,
-    ut.total_orders
+    first_name,
+    last_name,
+    ROUND(AVG(order_hour), 0) AS mean_hour,
+    ROUND(STDDEV(order_hour), 0) AS std_hour,
+    total_orders
 FROM 
-    order_counts oc
+    orders_with_hour oh
 JOIN 
-    user_totals ut ON oc.user_id = ut.user_id
-ORDER BY total_orders DESC, first_name, last_name
+    user_totals ut ON oh.user_id = ut.user_id
+GROUP BY first_name, last_name, total_orders
+ORDER BY total_orders DESC
 ```
+
+### the application
+
+if the standard deviation is less than 3 hours, the user is consistent and it triggers a notification. else, 8pm.
+an improvement to this is automation with AI
+
+###
+
