@@ -1,8 +1,8 @@
 ## [lilac](https://thelilac.app/)
-lilac is an early-stage food delivery startup I have worked with on a couple projects to improve user engagement. one analysis I have done is understanding order behavior to run push notifications at the right times. using Postgres SQL, here is how I have achieved it:
+lilac is an early-stage food delivery startup I have worked with on a couple projects to improve user engagement. One analysis I have done is understanding order behavior to run push notifications at the right times. Using Postgres SQL, here is how I have achieved it:
 
 ### data description
-in our Supabase database, we have an `orders` table that includes
+In our Supabase database, we have an `orders` table that includes
 
 `id` - unique identifier for every entry\
 `user_id` - id for every user\
@@ -25,10 +25,10 @@ in our Supabase database, we have an `orders` table that includes
 
 
 ### field selection
-the first step is to comb through the data table for relevant fields which are time of the order and status of the order ensuring it is confirmed and non-cancelled. side note, this table could use a normalization haha
+The first step is to comb through the data table for relevant fields which are time of the order and status of the order ensuring it is confirmed and non-cancelled. Side note, this table could use a normalization
 
 ### the query
-I specifically want to understand what hour customers usually order at. and because the timestamp is stored in UTC, I first converted it to local EST time and then extracted the hour. to retrieve confirmed and non-cancelled order, I set `payment_confirmed = TRUE` and `cancelled = FALSE`
+I specifically want to understand what hour customers usually order at. And because the timestamp is stored in UTC, I first converted it to local EST time and then extracted the hour. To retrieve confirmed and non-cancelled order, I set `payment_confirmed = TRUE` and `cancelled = FALSE`
 ```
 SELECT 
     EXTRACT(HOUR FROM created_at AT TIME ZONE 'America/New_York') AS EST_hour,
@@ -41,13 +41,13 @@ WHERE payment_confirmed = TRUE
 
 
 ### the analysis
-using the output from the query, I created a bar chart to visualize the order distribution
+Using the output from the query, I created a bar chart to visualize the order distribution
 \
 <img width="545" height="395" alt="Screenshot 2025-10-23 at 11 36 26 AM" src="https://github.com/user-attachments/assets/a9f71c45-2a11-4024-b51b-e75ef9d9c725" />
 
 
 ### the enhancement
-let's add time buckets for an executive view because higher up is asking for it
+let's add time buckets for an executive view
 
 ```
 WITH EST_order_hours AS (
@@ -71,17 +71,19 @@ FROM EST_order_hours
 GROUP BY time_bucket
 ```
 
-output\
+output
 
 <img width="201" height="177" alt="Screenshot 2025-10-23 at 2 47 34 PM" src="https://github.com/user-attachments/assets/2d24d6e4-c9c8-4319-9e32-4df66bb3bfa8" />
 
 
 ### the recommendation
-users visit the site and order food delivery the most at night, specifically at 8pm. it would be interesting to test run push notifications at that time and see how it affects order count. I also understand that user behavior is subjective, so I offer a deepdive into each user below
+Users visit the site and order food delivery the most at night, specifically at 8pm. It would be interesting to test run push notifications at that time and see how it affects order count. I also understand that user behavior is subjective, so I offer a deepdive into each user below
 
 
 ### the deepdive
-here, I want to answer the question - how often and consistent do each user order? the insights derived could be useful for user segmentation to deliver more personalized experiences. unfortunately, the output data is sensitive so I can only show the SQL script
+Here, I want to answer the question - how often and consistent do each user order? The insights derived would be useful for user segmentation to deliver more personalized experiences.
+
+Unfortunately because the output data is sensitive, I can only share the SQL script and methodology. The idea here is to get the mean and standard deviation of the order time along with the total number of orders per user. A low standard deviation and high order count point to consistent behavior. And create the opportunity to increase ordering behavior.
 
 ```
 WITH EST_order_hours AS (
@@ -124,8 +126,7 @@ ORDER BY total_orders DESC
 ```
 
 
-### the application
-if standard deviation for order hour is less than 3 hours, the user is considered consistent and would receive push notifications at the mean hour. an improvement to this project is incorporating automation with ML
+### the automation
+So far, this analysis has been manual. A vision for it is a workflow that feeds into push notification deployment. However, the ideal process is to have it automatic which is why I'm going to incorporate machine learning and reinforcement next
 
-### the ML
-
+### the prediction
