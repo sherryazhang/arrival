@@ -1,8 +1,10 @@
+# nov 2025
+
 ## [lilac](https://thelilac.app/)
 lilac is an early-stage food delivery startup I have worked with on a couple projects to improve user engagement. One analysis I have done is understanding order behavior to run push notifications at the right times. Using Postgres SQL, here is how I have achieved it:
 
 ### data description
-In our Supabase database, we have an `orders` table that includes
+In Supabase database, there is an `orders` table that includes
 
 `id` - unique identifier for every entry\
 `user_id` - id for every user\
@@ -25,12 +27,12 @@ In our Supabase database, we have an `orders` table that includes
 
 
 ### field selection
-The first step is to comb through the data table for relevant fields. In this case, they are `created_at`, `payment_confirmed`, and `cancelled`. `created_at` helps me understand what hours users usually order at during a 24 hour period. `payment_confirmed` and `cancelled` have the status of the order, ensuring it is confirmed and non-cancelled.
+The first step is to comb through the data table for relevant fields. In this case, they are `created_at`, `payment_confirmed`, and `cancelled`. `created_at` helps me understand what hours users usually order at during a 24 hour period. `payment_confirmed` and `cancelled` log the status of the order, ensuring it is confirmed and not cancelled.
 
-[side note - this table could use a normalization in the future for better readability, performance, and user privacy]
+[side note - this table could use a normalization in the future for better performance and user privacy]
 
 ### the query
-The next step is to count the number of orders per hour. Because `created_at` is a timestamp stored in UTC, I converted it to local EST time then extracted the hour. And to filter for confirmed and non-cancelled orders, I set `payment_confirmed = TRUE` and `cancelled = FALSE`.
+The next step is to count the number of orders per hour. Because `created_at` is a timestamp stored in UTC, I convert it to local EST time then extract the hour. And to filter for confirmed and not cancelled orders, I set `payment_confirmed = TRUE` and `cancelled = FALSE`.
 ```
 SELECT 
     EXTRACT(HOUR FROM created_at AT TIME ZONE 'America/New_York') AS EST_hour,
@@ -43,7 +45,7 @@ WHERE payment_confirmed = TRUE
 
 
 ### the analysis
-The output of the query is number of orders for each hour from 0 to 23. With it, I created a bar chart to visualize the order distribution:
+The output of the query is number of orders for each hour from 0 to 23. With it, I create a bar chart to visualize the order distribution:\
 \
 <img width="545" height="395" alt="Screenshot 2025-10-23 at 11 36 26 AM" src="https://github.com/user-attachments/assets/a9f71c45-2a11-4024-b51b-e75ef9d9c725" />
 
@@ -56,7 +58,9 @@ The push notification is currently set to run at 2pm. The bar chart above shows 
 ### the deepdive
 My approach so far looks at overall behavior across all users. But order behavior is subjective. Here, I propose an interesting question to answer - how often and consistent do each user order? The insights would be useful for user segmentation and to deliver personalized experiences.
 
-The methodology is to get the mean and standard deviation of the order time along with total number of orders per user. A low standard deviation and high order count point to consistent behavior.
+The method I use is statistics, looking at the mean and standard deviation of order time along with total number of orders per user. A low standard deviation and high order count point to consistent behavior.
+
+In Postgres SQL, I first make two CTEs to get the total number of orders per user:
 
 ```
 WITH EST_order_hours AS (
@@ -67,7 +71,7 @@ WITH EST_order_hours AS (
     FROM 
         orders
     WHERE payment_confirmed = TRUE
-    AND cancelled = FALSE
+        AND cancelled = FALSE
     GROUP BY 
         user_id, EST_hour
 ),
@@ -81,20 +85,30 @@ user_totals AS (
     GROUP BY 
         user_id
 )
+```
 
+Then calculate the mean and standard deviation rounding to the nearest integer:
+```
 SELECT 
     user_id,
-    ROUND(AVG(order_hour), 0) AS mean_hour,
-    ROUND(STDDEV(order_hour), 0) AS std_hour,
+    ROUND(AVG(order_hour)) AS mean_hour,
+    ROUND(STDDEV(order_hour)) AS std_hour,
     total_orders
 FROM 
-    EST_order_hours oh
-JOIN 
-    user_totals ut ON oh.user_id = ut.user_id
-GROUP BY user_id, total_orders
+    EST_order_hours oh JOIN user_totals ut ON oh.user_id = ut.user_id
+GROUP BY ut.user_id, total_orders
 ORDER BY total_orders DESC
 ```
 
+### the output
+boxplot
+
+
+### the deeper dive
+For users who are inconsistent, what I can do is dive deeper into their hourly behavior. The following SQL script calculates the median
+
+
+
 
 ### the future
-Analyses like the above can be part of a workflow that feeds into push notification deployment. However, my current process is manual and repetitive. It is ideal to have an autonomous system in place. As the [lilac](https://thelilac.app/) matures and a lot more data become available, I would implement a model that learns user behavior and decides when the best time is to send push notifications to each user.
+Analyses like the above are useful in a workflow that feeds into push notification deployment. However, my current process is manual and repetitive. It is ideal to have an autonomous system in place. As the [lilac](https://thelilac.app/) matures and a lot more data become available, I would implement a model that learns user behavior and decides when the best time is to send push notifications to each user.
