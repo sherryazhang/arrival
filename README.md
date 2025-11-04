@@ -125,7 +125,7 @@ I consider a user consistent when the standard deviation is within 2 hours. The 
 
 
 ### the deep dive 2
-Thinking through it, I realize that the mean is susceptible to outliers. What is actually worth looking into is the mode. It gives the most often time every user orders at.
+Thinking through it, I realize that the mean is susceptible to outliers. What is worth looking into is the mode. It gives the most often time every user orders at which is the most opportune time.
 
 
 ### the future
