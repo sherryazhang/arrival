@@ -58,7 +58,7 @@ The push notification is currently set to run at 2pm. The bar chart above shows 
 ### the deepdive
 My approach so far looks at overall behavior across all users. But order behavior is subjective. Here, I propose an interesting question to answer - how often and consistent do each user order? The insights would be useful for user segmentation and to deliver personalized experiences.
 
-The method I use is statistics, looking at the mean and standard deviation of order time along with total number of orders per user. A low standard deviation and high order count point to consistent behavior.
+The method I use is statistics, looking at the mean and standard deviation of order time along with total number of orders per user. A low standard deviation - less than 2 - and high order count - more than 5 - is a reasonable range to consider a user consistent.
 
 In Postgres SQL, I first make two CTEs to get the total number of orders per user:
 
@@ -100,14 +100,32 @@ GROUP BY ut.user_id, total_orders
 ORDER BY total_orders DESC
 ```
 
-### the output
-boxplot
+### the visualization
+Using the output from the SQL script, I illustrate in Python the standard deviation distribution:
+
+```
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# read output, drop null values
+df = pd.read_csv("User_Order_Hour_Statistics.csv").dropna()
+
+# create boxplot
+plt.boxplot(df['std_hour'])
+
+# add labels and title
+plt.title("order hour std")
+plt.ylabel("std values")
+plt.show()
+```
+
+I consider a user consistent when the standard deviation is within 2 hours. The output boxplot shows only 25% of users are. This statistics makes me wonder how to better capture individual behavior.
+
+<img width="552" height="400" alt="Screenshot 2025-11-03 at 4 22 05 PM" src="https://github.com/user-attachments/assets/c8201662-e135-4001-8ef6-0e007ad4a330" />
 
 
-### the deeper dive
-For users who are inconsistent, what I can do is dive deeper into their hourly behavior. The following SQL script calculates the median
-
-
+### the deep dive 2
+Thinking through it, I realize that the mean is susceptible to outliers. What is actually worth looking into is the mode. It gives the most often time every user orders at.
 
 
 ### the future
