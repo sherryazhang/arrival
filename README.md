@@ -58,7 +58,7 @@ The push notification is currently set to run at 2pm. The bar chart above shows 
 ### the deepdive
 My approach so far looks at overall behavior across all users. But order behavior is subjective. Here, I propose an interesting question to answer - how often and consistent do each user order? The insights would be useful for user segmentation and to deliver personalized experiences.
 
-The method I use is statistics, looking at the mean and standard deviation of order time along with total number of orders per user. A low standard deviation - less than 2 - and high order count - more than 5 - is a reasonable range to consider a user consistent.
+The method I use is statistics, looking at the mean and standard deviation of order time along with total number of orders per user. A low standard deviation and high order count point to consistent behavior.
 
 In Postgres SQL, I first make two CTEs to get the total number of orders per user:
 
@@ -101,7 +101,7 @@ ORDER BY total_orders DESC
 ```
 
 ### the visualization
-Using the output from the SQL script, I illustrate in Python the standard deviation distribution:
+Using the output from the script above, I illustrate in Python the standard deviation distribution:
 
 ```
 import pandas as pd
@@ -119,14 +119,14 @@ plt.ylabel("std values")
 plt.show()
 ```
 
-I consider a user consistent when the standard deviation is within 2 hours. The output boxplot shows only 25% of users are. This statistics makes me wonder how to better capture individual behavior.
+I consider a user consistent when the standard deviation is within 2 hours. The output boxplot shows only 25% of the users fall under that bucket which is to say that most of the users are inconsistent.
 
 <img width="552" height="400" alt="Screenshot 2025-11-03 at 4 22 05 PM" src="https://github.com/user-attachments/assets/c8201662-e135-4001-8ef6-0e007ad4a330" />
 
 
 ### the deep dive 2
-Thinking through it, I realize that the mean is susceptible to outliers. What is worth looking into is the mode. It gives the most often time every user orders at which is the most opportune time.
+Given the above statistics, how do I then capture individual behavior? Thinking through it, I realize what is worth looking into is the mode. Mode provides information on the most often time user orders which is also the most opportune time to deliver personalized experiences.
 
 
 ### the future
-Analyses like the above are useful in a workflow that feeds into push notification deployment. However, my current process is manual and repetitive. It is ideal to have an autonomous system in place. As the [lilac](https://thelilac.app/) matures and a lot more data become available, I would implement a model that learns user behavior and decides when the best time is to send push notifications to each user.
+Analyses like the above are useful in a workflow that feeds into push notification deployment. However, my current process is manual and repetitive. It is ideal to have an autonomous system in place. As the [lilac](https://thelilac.app/) matures and a lot more data become available, I would implement a model that learns user behavior and decides when the best time is to send push notifications to every user.
