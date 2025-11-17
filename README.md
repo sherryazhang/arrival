@@ -127,6 +127,35 @@ I consider a user consistent when the standard deviation is within 2 hours. The 
 ### the deep dive 2
 Given the above statistics, how do I then capture individual behavior? Thinking through it, I realize what is worth looking into is the mode. Mode provides information on the most often time user orders which is also the most opportune time to deliver personalized experiences.
 
+```
+WITH EST_order_hours AS (
+    SELECT 
+        user_id,
+        EXTRACT(HOUR FROM created_at AT TIME ZONE 'America/New_York') AS EST_hour,
+        COUNT(*) AS frequency
+    FROM 
+        orders
+    WHERE payment_confirmed = TRUE
+        AND cancelled = FALSE
+    GROUP BY 
+        user_id, EST_hour
+),
+
+frequency_rank AS (
+    SELECT user_id, order_hour, frequency,
+        ROW_NUMBER() OVER (
+        PARTITION BY user_id 
+        ORDER BY frequency DESC
+        ) AS rank
+    FROM EST_order_hours
+)
+
+SELECT user_id, order_hour AS mode_hour
+FROM frequency_rank
+WHERE rank = 1
+ORDER BY user_id;
+```
+
 
 ### the future
-Analyses like the above are useful in a workflow that feeds into push notification deployment. However, my current process is manual and repetitive. It is ideal to have an autonomous system in place. As the [lilac](https://thelilac.app/) matures and a lot more data become available, I would implement a model that learns user behavior and decides when the best time is to send push notifications to every user.
+Analyses like the above are useful in a workflow that feeds into push notification deployment. However, my current process is manual and repetitive. It is ideal to have an autonomous system in place. As the [lilac](https://thelilac.app/) matures and a lot more data become available, I would implement a model that learns user behavior and decides when the best time is to run push notifications.
