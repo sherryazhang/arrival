@@ -33,6 +33,7 @@ The first step is to comb through the data table for relevant fields. In this ca
 
 ### the query
 The next step is to count the number of orders per hour. Because `created_at` is a timestamp stored in UTC, I convert it to local EST time then extract the hour. And to filter for confirmed and not cancelled orders, I set `payment_confirmed = TRUE` and `cancelled = FALSE`.
+
 ```
 SELECT 
     EXTRACT(HOUR FROM created_at AT TIME ZONE 'America/New_York') AS EST_hour,
@@ -52,7 +53,7 @@ The output of the query is number of orders for each hour from 0 to 23. With it,
 It looks like, in the past couple months, users visited the [lilac](https://thelilac.app/) platform and ordered food delivery the most around 8pm.
 
 ### the recommendation
-The push notification is currently set to run at 2pm. The bar chart above shows signs of users not acting on it. I would recommend to run push notifications at 8pm instead and compare the percent difference in order count after a month or so.
+The push notification is currently set to run at 2pm. The bar chart above shows signs of users not acting on it. I would recommend to run them at 8pm instead and compare the percent difference in order count after a month or so.
 
 
 ### the deepdive
@@ -127,6 +128,8 @@ I consider a user consistent when the standard deviation is within 2 hours. The 
 ### the deep dive 2
 Given the above statistics, how do I then capture individual behavior? Thinking through it, I realize what is worth looking into is the mode. Mode provides information on the most often time user orders which is also the most opportune time to deliver personalized experiences.
 
+In SQL, I make two CTEs to get the ranking of order hour frequency per user:
+
 ```
 WITH EST_order_hours AS (
     SELECT 
@@ -149,13 +152,18 @@ frequency_rank AS (
         ) AS rank
     FROM EST_order_hours
 )
-
-SELECT user_id, order_hour AS mode_hour
-FROM frequency_rank
-WHERE rank = 1
-ORDER BY user_id;
 ```
+
+And then filter for `rank = 1` for the most frequent hour:
+
+```
+SELECT user_id, order_hour AS frequent_order_hour
+FROM frequency_rank
+WHERE rank = 1;
+```
+
+The result table consists of every user's id, `user_id`, and the time that user most often orders at, `frequent_order_hour`. Such information can then be part of a workflow that feeds into push notification deploymenet.
 
 
 ### the future
-Analyses like the above are useful in a workflow that feeds into push notification deployment. However, my current process is manual and repetitive. It is ideal to have an autonomous system in place. As the [lilac](https://thelilac.app/) matures and a lot more data become available, I would implement a model that learns user behavior and decides when the best time is to run push notifications.
+Analyses like the above are very useful although manual. It is ideal to have an autonomous system in place. As the [lilac](https://thelilac.app/) matures and a lot more data become available, I would implement a model that learns user behavior and decides when the best time is to run push notifications.
